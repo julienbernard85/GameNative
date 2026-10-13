@@ -25,6 +25,8 @@ data class LibraryItem(
     val index: Int = 0,
     val appId: String = "",
     val name: String = "",
+    val executableShortcutId: String? = null,
+    val shortcutParentAppId: String? = null,
     val iconHash: String = "",
     val capsuleImageUrl: String = "",
     val headerImageUrl: String = "",
@@ -50,7 +52,7 @@ data class LibraryItem(
     val isRecLoading: Boolean = false,
 ) {
     val clientIconUrl: String
-        get() = when (gameSource) {
+        get() = if (executableShortcutId != null) iconHash else when (gameSource) {
             GameSource.STEAM -> if (iconHash.isNotEmpty()) {
                 Constants.Library.ICON_URL + "${gameId}/$iconHash.ico"
             } else {
@@ -85,5 +87,5 @@ data class LibraryItem(
 
     /** Numeric game ID extracted from the source-prefixed appId; returns 0 if parsing fails. */
     val gameId: Int
-        get() = appId.removePrefix("${gameSource.name}_").toIntOrNull() ?: 0
+        get() = (shortcutParentAppId ?: appId).removePrefix("${gameSource.name}_").toIntOrNull() ?: 0
 }

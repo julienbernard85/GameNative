@@ -1206,7 +1206,30 @@ private fun LibraryScreenContent(
                 }
             }
         } else {
-            LibraryDetailPane(
+            val shortcutParent = selectedLibraryItem?.shortcutParentAppId
+            if (shortcutParent != null) {
+                val shortcutContainer = remember(shortcutParent) {
+                    runCatching {
+                        app.gamenative.utils.ContainerUtils.toContainerData(
+                            app.gamenative.utils.ContainerUtils.getContainer(context, shortcutParent),
+                        )
+                    }.getOrNull()
+                }
+                if (shortcutContainer != null) {
+                    app.gamenative.ui.component.dialog.ExecutableShortcutsDialog(
+                        parentAppId = shortcutParent,
+                        containerData = shortcutContainer,
+                        onDismiss = { selectedAppId = null; selectedLibraryItem = null },
+                        selectedEntryId = selectedLibraryItem?.executableShortcutId,
+                    )
+                } else {
+                    LaunchedEffect(shortcutParent) {
+                        app.gamenative.ui.util.SnackbarManager.show(context.getString(R.string.executable_shortcut_launch_failed))
+                        selectedAppId = null
+                        selectedLibraryItem = null
+                    }
+                }
+            } else LibraryDetailPane(
                 libraryItem = selectedLibraryItem,
                 onBack = {
                     selectedAppId = null

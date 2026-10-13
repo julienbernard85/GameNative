@@ -329,7 +329,7 @@ object ContainerUtils {
             wincomponents = container.winComponents,
             drives = container.drives,
             execArgs = container.execArgs,
-            executablePath = container.executablePath,
+            executablePath = container.configuredExecutablePath,
             showFPS = false,
             launchRealSteam = container.isLaunchRealSteam,
             launchBionicSteam = container.isLaunchBionicSteam,

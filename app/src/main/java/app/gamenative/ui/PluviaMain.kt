@@ -488,7 +488,18 @@ fun PluviaMain(
 
     // shared intent-launch path. resolves isOffline at the call site because intent launches can
     // arrive pre-login (cold-boot via stored creds) and downstream cloud-sync needs a settled answer.
-    val launchIntentApp: (resolvedAppId: String, hasTemporaryOverride: Boolean) -> Unit = { resolvedAppId, hasTemporaryOverride ->
+    val launchIntentApp: (resolvedAppId: String, hasTemporaryOverride: Boolean, shortcutId: String?) -> Unit = launch@{ resolvedAppId, hasTemporaryOverride, shortcutId ->
+        val executableEntry = if (shortcutId != null) {
+            runCatching {
+                val entry = requireNotNull(app.gamenative.utils.ExecutableShortcutStore.find(context, shortcutId))
+                require(entry.parentAppId == resolvedAppId) { "Shortcut parent is unavailable" }
+                app.gamenative.utils.ExecutableShortcutStore.validate(context, entry)
+                entry
+            }.getOrElse {
+                SnackbarManager.show(context.getString(R.string.executable_shortcut_launch_failed))
+                return@launch
+            }
+        } else null
         val requestedGameId = runCatching { ContainerUtils.extractGameIdFromContainerId(resolvedAppId) }.getOrNull()
         if (SteamService.keepAlive && requestedGameId != null && ActiveGameRegistry.get()?.appId == requestedGameId) {
             Timber.i("[PluviaMain]: Game $resolvedAppId already running; bringing XServer screen forward")
@@ -499,6 +510,7 @@ fun PluviaMain(
             MainActivity.wasLaunchedViaExternalIntent = true
             trackGameLaunched(resolvedAppId)
             viewModel.setLaunchedAppId(resolvedAppId)
+            viewModel.setLaunchedExecutablePath(executableEntry?.executablePath)
             viewModel.setBootToContainer(false)
             scope.launch(Dispatchers.IO) {
                 val gameSource = ContainerUtils.extractGameSourceFromContainerId(resolvedAppId)
@@ -550,7 +562,7 @@ fun PluviaMain(
                             context, launchRequest.appId, launchRequest.containerConfig,
                         )
                     }
-                    launchIntentApp(resolution.finalAppId, launchRequest.containerConfig != null)
+                    launchIntentApp(resolution.finalAppId, launchRequest.containerConfig != null, launchRequest.shortcutId)
                 }
 
                 is GameResolutionResult.NotFound -> {
@@ -613,7 +625,7 @@ fun PluviaMain(
                         }
                     }
                     // finalAppId — track what actually launched (may differ from launchRequest.appId after resolution)
-                    launchIntentApp(resolution.finalAppId, launchRequest.containerConfig != null)
+                    launchIntentApp(resolution.finalAppId, launchRequest.containerConfig != null, launchRequest.shortcutId)
                 }
             }
         }
@@ -636,6 +648,7 @@ fun PluviaMain(
                             IntentLaunchManager.LaunchRequest(
                                 appId = event.appId,
                                 containerConfig = IntentLaunchManager.getTemporaryOverride(event.appId),
+                                shortcutId = event.shortcutId,
                             )
                         )
                         pendingLaunchGeneration++
@@ -649,6 +662,7 @@ fun PluviaMain(
                             launchIntentApp(
                                 resolution.finalAppId,
                                 IntentLaunchManager.hasTemporaryOverride(resolution.finalAppId),
+                                event.shortcutId,
                             )
                         }
 
@@ -2165,6 +2179,9 @@ fun PluviaMain(
                         }
                         return@composable
                     }
+                    androidx.compose.runtime.CompositionLocalProvider(
+                        app.gamenative.launch.LocalExecutableShortcutPath provides state.launchedExecutablePath,
+                    ) {
                     XServerScreen(
                         appId = state.launchedAppId,
                         bootToContainer = state.bootToContainer,
@@ -2203,6 +2220,7 @@ fun PluviaMain(
                             viewModel.onGameLaunchError(error)
                         },
                     )
+                    }
                 }
 
                 /** Settings **/

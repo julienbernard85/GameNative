@@ -493,6 +493,7 @@ fun XServerScreen(
 ) {
     Timber.i("Starting up XServerScreen")
     val context = LocalContext.current
+    val executableShortcutPath = app.gamenative.launch.LocalExecutableShortcutPath.current
     val view = LocalView.current
     val scope = rememberCoroutineScope()
     val imm = remember(context) {
@@ -519,7 +520,12 @@ fun XServerScreen(
     }
 
     val container = remember(appId) {
-        ContainerUtils.getContainer(context, appId)
+        ContainerUtils.getContainer(context, appId).apply {
+            setSessionExecutablePath(executableShortcutPath)
+        }
+    }
+    DisposableEffect(container) {
+        onDispose { container.setSessionExecutablePath(null) }
     }
     val activity = remember(context) { BrightnessManager.findActivity(context) }
 

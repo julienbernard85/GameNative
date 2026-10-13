@@ -29,14 +29,25 @@ object IntentLaunchManager {
     data class LaunchRequest(
         val appId: String,
         val containerConfig: ContainerData? = null,
+        val shortcutId: String? = null,
     )
 
-    fun parseLaunchIntent(intent: Intent): LaunchRequest? {
+    fun parseLaunchIntent(intent: Intent, context: Context? = null): LaunchRequest? {
         Timber.d("[IntentLaunchManager]: Parsing intent: action=${intent.action}")
 
         if (intent.action != ACTION_LAUNCH_GAME && intent.action != ACTION_VIEW) {
             Timber.d("[IntentLaunchManager]: Intent action '${intent.action}' doesn't match expected action '$ACTION_LAUNCH_GAME' or '$ACTION_VIEW'")
             return null
+        }
+        val shortcutId = if (intent.action == ACTION_VIEW) {
+            intent.data?.takeIf { it.scheme == URI_SCHEME && it.host == URI_HOST }?.getQueryParameter("shortcut")
+        } else {
+            intent.getStringExtra("executable_shortcut_id")
+        }
+        if (shortcutId != null) {
+            // Resolve only app-owned metadata. External callers cannot supply an arbitrary executable.
+            val entry = context?.let { ExecutableShortcutStore.find(it, shortcutId) } ?: return null
+            return LaunchRequest(entry.parentAppId, shortcutId = entry.id)
         }
         val gameId: Int
         val gameSource: String?

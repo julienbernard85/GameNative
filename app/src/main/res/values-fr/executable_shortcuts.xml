@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="executable_shortcut_gui_steam_unsupported">Le client Steam avec interface choisit son propre exécutable. Utilisez le lancement direct ou Steam sans interface pour ces raccourcis.</string>
+    <string name="create_executable_shortcut">Créer un raccourci d’exécutable</string>
+    <string name="executable_shortcuts_description">Entrées indépendantes partageant l’installation et le conteneur Wine de ce jeu. Sélectionnez un .exe dans le lecteur du jeu.</string>
+    <string name="executable_shortcut_name">Nom du raccourci</string>
+    <string name="executable_shortcut_artwork">Choisir une pochette</string>
+    <string name="executable_shortcut_new">Nouvelle entrée</string>
+    <string name="executable_shortcut_edit">Modifier</string>
+    <string name="executable_shortcut_delete">Supprimer l’entrée</string>
+    <string name="executable_shortcut_copy_link">Copier le lien</string>
+    <string name="executable_shortcut_play">Jouer</string>
+    <string name="executable_shortcut_save">Enregistrer l’entrée</string>
+    <string name="executable_shortcut_pin_requested">Raccourci transmis au lanceur Android</string>
+    <string name="executable_shortcut_launch_failed">Impossible de lancer cette entrée. Vérifiez que le jeu parent, son conteneur et son exécutable existent toujours.</string>
+</resources>

@@ -207,6 +207,9 @@ class LibraryViewModel @Inject constructor(
     }
 
     init {
+        viewModelScope.launch {
+            app.gamenative.utils.ExecutableShortcutStore.revision.drop(1).collect { onFilterApps() }
+        }
         viewModelScope.launch(Dispatchers.IO) {
             if (gpuName != "Unknown GPU") {
                 DeviceGameStatsCache.refreshIfStale(
@@ -792,7 +795,7 @@ class LibraryViewModel @Inject constructor(
                 return status == GameCompatibilityStatus.COMPATIBLE || status == GameCompatibilityStatus.GPU_COMPATIBLE
             }
 
-            val steamOwnerTypeFiltered: List<SteamApp> = appList
+            val steamEligibleParents: List<SteamApp> = appList
                 .asSequence()
                 .filter { item ->
                     SteamService.familyMembers.ifEmpty {
@@ -820,6 +823,9 @@ class LibraryViewModel @Inject constructor(
                         item.ownerAccountId.contains(PrefManager.steamUserAccountId) || PrefManager.steamUserAccountId == 0
                     }
                 }
+                .toList()
+
+            val steamOwnerTypeFiltered = steamEligibleParents.asSequence()
                 .filter { item ->
                     if (currentState.searchQuery.isNotEmpty()) {
                         matches(item.name, currentState.searchQuery)
@@ -953,6 +959,20 @@ class LibraryViewModel @Inject constructor(
             }
 
             // Scan Custom Games roots and create UI items (filtered by search query inside scanner)
+            val executableEntries = app.gamenative.utils.ExecutableShortcutStore.all(context).mapNotNull { entry ->
+                val parentId = entry.parentAppId.removePrefix("STEAM_").toIntOrNull() ?: return@mapNotNull null
+                val parent = steamEligibleParents.find { it.id == parentId } ?: return@mapNotNull null
+                if (!SteamService.isAppInstalled(parentId) || !currentState.appInfoSortType.contains(AppFilter.GAME) ||
+                    !matches(entry.name, currentState.searchQuery) ||
+                    !SteamCollectionFilter.passesAll(parentId, allowedSteamAppIds, allowedCuratedAppIds) ||
+                    !HiddenGameFilter.passesSteam(parentId, hiddenSteamAppIds, showHiddenGamesByDefault, hiddenCollectionSelected) ||
+                    !passesCompatibleFilter(entry.name) || !passesStatsFilters(currentState, GameSource.STEAM, entry.name)
+                ) return@mapNotNull null
+                val parentItem = LibraryItem(appId = entry.parentAppId, name = parent.name, iconHash = parent.clientIconHash,
+                    capsuleImageUrl = parent.getCapsuleUrl(), headerImageUrl = parent.headerUrl, heroImageUrl = parent.getHeroUrl())
+                LibraryEntry(entry.toLibraryItem(parentItem), true, lastPlayedFor(entry.parentAppId))
+            }
+
             // Only include custom games if GAME filter is selected
             val customGameItems = if (currentState.appInfoSortType.contains(AppFilter.GAME)) {
                 CustomGameScanner.scanAsLibraryItems(
@@ -1222,7 +1242,10 @@ class LibraryViewModel @Inject constructor(
             val favoriteIds = FavoritesManager.favorites.value
 
             val combined = buildList {
-                if (includeSteam) addAll(steamEntries)
+                if (includeSteam) {
+                    addAll(steamEntries)
+                    addAll(executableEntries)
+                }
                 if (includeOpen && !steamListFilterSelected) addAll(customEntries)
                 if (includeGOG && !steamListFilterSelected) addAll(gogEntries)
                 if (includeEpic && !steamListFilterSelected) addAll(epicEntries)
@@ -1317,6 +1340,7 @@ class LibraryViewModel @Inject constructor(
             // contents even when a source is hidden from the library through user preferences.
             val favoriteEligible = buildList {
                 addAll(steamEntries)
+                addAll(executableEntries)
                 addAll(customEntries)
                 if (GOGService.hasStoredCredentials(context)) addAll(gogEntries)
                 if (EpicService.hasStoredCredentials(context)) addAll(epicEntries)
@@ -1334,12 +1358,12 @@ class LibraryViewModel @Inject constructor(
                     isLoading = false, // Loading complete
                     // Per-source counts for tab badges
                     // Use user prefs + auth state only (not current tab) so badges stay stable across tab switches
-                    allCount = (if (currentState.showSteamInLibrary) steamEntries.size else 0) +
+                    allCount = (if (currentState.showSteamInLibrary) steamEntries.size + executableEntries.size else 0) +
                         (if (currentState.showCustomGamesInLibrary) customEntries.size else 0) +
                         (if (currentState.showGOGInLibrary && GOGService.hasStoredCredentials(context)) gogEntries.size else 0) +
                         (if (currentState.showEpicInLibrary && EpicService.hasStoredCredentials(context)) epicEntries.size else 0) +
                         (if (currentState.showAmazonInLibrary && AmazonService.hasStoredCredentials(context)) amazonEntries.size else 0),
-                    steamCount = if (currentState.showSteamInLibrary) steamEntries.size else 0,
+                    steamCount = if (currentState.showSteamInLibrary) steamEntries.size + executableEntries.size else 0,
                     gogCount = if (currentState.showGOGInLibrary && GOGService.hasStoredCredentials(context)) gogEntries.size else 0,
                     epicCount = if (currentState.showEpicInLibrary && EpicService.hasStoredCredentials(context)) epicEntries.size else 0,
                     amazonCount = if (currentState.showAmazonInLibrary && AmazonService.hasStoredCredentials(context)) amazonEntries.size else 0,

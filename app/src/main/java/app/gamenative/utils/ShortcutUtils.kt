@@ -85,7 +85,7 @@ private fun createAdaptiveIconBitmap(context: Context, src: Bitmap): Bitmap {
     return outBmp
 }
 
-internal suspend fun createPinnedShortcut(context: Context, gameId: Int, label: String, gameSource: GameSource, iconUrl: String?) {
+internal suspend fun createPinnedShortcut(context: Context, gameId: Int, label: String, gameSource: GameSource, iconUrl: String?, executableShortcutId: String? = null, requestPin: Boolean = true) {
     val appContext = context.applicationContext
     val shortcutManager = appContext.getSystemService(ShortcutManager::class.java)
 
@@ -93,6 +93,7 @@ internal suspend fun createPinnedShortcut(context: Context, gameId: Int, label: 
         setClass(appContext, MainActivity::class.java)
         putExtra("app_id", gameId)
         putExtra("game_source", gameSource.name)
+        executableShortcutId?.let { putExtra("executable_shortcut_id", it) }
         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
     }
 
@@ -146,7 +147,7 @@ internal suspend fun createPinnedShortcut(context: Context, gameId: Int, label: 
         Icon.createWithResource(appContext, R.mipmap.ic_shortcut_filter)
     }
 
-    val shortcut = ShortcutInfo.Builder(appContext, "game_$gameId")
+    val shortcut = ShortcutInfo.Builder(appContext, executableShortcutId?.let { "executable_$it" } ?: "game_$gameId")
         .setShortLabel(label)
         .setLongLabel(label)
         .setIcon(finalIcon)
@@ -154,11 +155,14 @@ internal suspend fun createPinnedShortcut(context: Context, gameId: Int, label: 
         .build()
 
     withContext(Dispatchers.Main) {
-        if (shortcutManager?.isRequestPinShortcutSupported == true) {
-            shortcutManager.requestPinShortcut(shortcut, null)
+        if (!requestPin) {
+            shortcutManager?.updateShortcuts(listOf(shortcut))
+        } else if (shortcutManager?.isRequestPinShortcutSupported == true) {
+            check(shortcutManager.requestPinShortcut(shortcut, null)) { "Launcher refused shortcut request" }
         } else {
-            val existing = shortcutManager?.dynamicShortcuts ?: emptyList()
-            shortcutManager?.dynamicShortcuts = (existing + shortcut).take(4)
+            checkNotNull(shortcutManager) { "Android shortcuts unavailable" }
+            val existing = shortcutManager.dynamicShortcuts.filterNot { it.id == shortcut.id }
+            shortcutManager.dynamicShortcuts = (listOf(shortcut) + existing).take(shortcutManager.maxShortcutCountPerActivity)
         }
     }
 }

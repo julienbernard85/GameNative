@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- French is provided; other locales intentionally use the English fallback. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="executable_shortcut_gui_steam_unsupported">The Steam desktop client chooses its own executable. Use direct launching or headless Steam for executable shortcuts.</string>
+    <string name="create_executable_shortcut">Create executable shortcut</string>
+    <string name="executable_shortcuts_description">Independent entries sharing this game’s installation and Wine container. Select an .exe from the game drive.</string>
+    <string name="executable_shortcut_name">Shortcut name</string>
+    <string name="executable_shortcut_artwork">Choose cover image</string>
+    <string name="executable_shortcut_new">New entry</string>
+    <string name="executable_shortcut_edit">Edit</string>
+    <string name="executable_shortcut_delete">Delete entry</string>
+    <string name="executable_shortcut_copy_link">Copy launch link</string>
+    <string name="executable_shortcut_play">Play</string>
+    <string name="executable_shortcut_save">Save entry</string>
+    <string name="executable_shortcut_pin_requested">Shortcut submitted to Android launcher</string>
+    <string name="executable_shortcut_launch_failed">Cannot launch this entry. Check that its parent game, container and executable still exist.</string>
+</resources>

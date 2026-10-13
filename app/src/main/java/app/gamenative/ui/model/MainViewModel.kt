@@ -124,7 +124,7 @@ class MainViewModel @Inject constructor(
         data object OnBackPressed : MainUiEvent()
         data object OnLoggedOut : MainUiEvent()
         data object LaunchApp : MainUiEvent()
-        data class ExternalGameLaunch(val appId: String) : MainUiEvent()
+        data class ExternalGameLaunch(val appId: String, val shortcutId: String? = null) : MainUiEvent()
         data class OnLogonEnded(val result: LoginResult) : MainUiEvent()
         data class SteamDisconnected(val isTerminal: Boolean) : MainUiEvent()
         data object ShowDiscordSupportDialog : MainUiEvent()
@@ -266,7 +266,7 @@ class MainViewModel @Inject constructor(
         Timber.tag("MainViewModel").i("Received external game launch event for app ${it.appId}")
         viewModelScope.launch {
             Timber.tag("MainViewModel").i("Sending ExternalGameLaunch UI event for app ${it.appId}")
-            _uiEvent.send(MainUiEvent.ExternalGameLaunch(it.appId))
+            _uiEvent.send(MainUiEvent.ExternalGameLaunch(it.appId, it.shortcutId))
         }
     }
 
@@ -570,7 +570,11 @@ class MainViewModel @Inject constructor(
     fun setLaunchedAppId(value: String) {
         // A dismissed card stays gone for the rest of that boot only.
         bootAdDismissedAtMs = 0L
-        _state.update { it.copy(launchedAppId = value) }
+        _state.update { it.copy(launchedAppId = value, launchedExecutablePath = null) }
+    }
+
+    fun setLaunchedExecutablePath(path: String?) {
+        _state.update { it.copy(launchedExecutablePath = path) }
     }
 
     fun setBootToContainer(value: Boolean) {

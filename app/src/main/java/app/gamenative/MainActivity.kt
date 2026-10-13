@@ -358,7 +358,7 @@ class MainActivity : ComponentActivity() {
         }
         Timber.d("[IntentLaunch]: handleLaunchIntent called with action=${intent.action}, isNewIntent=$isNewIntent")
         try {
-            val launchRequest = IntentLaunchManager.parseLaunchIntent(intent)
+            val launchRequest = IntentLaunchManager.parseLaunchIntent(intent, this)
             if (launchRequest != null) {
                 Timber.d("[IntentLaunch]: Received external launch intent for app ${launchRequest.appId}")
 
@@ -371,14 +371,16 @@ class MainActivity : ComponentActivity() {
                         IntentLaunchManager.applyTemporaryConfigOverride(this, launchRequest.appId, config)
                     }
                     lifecycleScope.launch {
-                        PluviaApp.events.emit(AndroidEvent.ExternalGameLaunch(launchRequest.appId))
+                        PluviaApp.events.emit(AndroidEvent.ExternalGameLaunch(launchRequest.appId, launchRequest.shortcutId))
                     }
                 } else {
                     // cold start — store as pending, PluviaMain consumes when UI is ready
                     setPendingLaunchRequest(launchRequest)
                     Timber.d("[IntentLaunch]: Stored pending launch request for app ${launchRequest.appId}")
                 }
-            } else if (intent.action == "${BuildConfig.APPLICATION_ID}.LAUNCH_GAME") {
+            } else if (intent.action == "${BuildConfig.APPLICATION_ID}.LAUNCH_GAME" ||
+                (intent.action == Intent.ACTION_VIEW && intent.data?.scheme == "gamenative" && intent.data?.host == "run")
+            ) {
                 // intent matched our action but failed to parse — tell the user
                 wasLaunchedViaExternalIntent = false
                 Timber.w("[IntentLaunch]: parseLaunchIntent returned null for LAUNCH_GAME intent")

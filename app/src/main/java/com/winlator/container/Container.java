@@ -130,6 +130,8 @@ public class Container {
 
     private String execArgs = ""; // Default exec arguments
     private String executablePath = ""; // Executable path for container
+    // Session-only target. saveDataChecked intentionally serializes executablePath instead.
+    private transient String sessionExecutablePath = null;
     private boolean sdlControllerAPI;
     private boolean fasterExternalLoading;
     private boolean disableLibredirect;
@@ -225,10 +227,19 @@ public class Container {
     }
 
     public String getExecutablePath() {
+        return sessionExecutablePath != null ? sessionExecutablePath : executablePath;
+    }
+
+    public void setSessionExecutablePath(String path) {
+        sessionExecutablePath = path;
+    }
+
+    public String getConfiguredExecutablePath() {
         return executablePath;
     }
 
     public void setExecutablePath(String executablePath) {
+        if (sessionExecutablePath != null) return;
         this.executablePath = executablePath != null ? executablePath : "";
     }
 

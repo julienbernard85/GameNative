@@ -1209,6 +1209,14 @@ abstract class BaseAppScreen {
     ): List<AppMenuOption> {
         val isInstalled = isInstalled(context, libraryItem)
         val menuOptions = mutableListOf<AppMenuOption>()
+        var showExecutableShortcuts by remember(libraryItem.appId) { mutableStateOf(false) }
+        if (showExecutableShortcuts) {
+            app.gamenative.ui.component.dialog.ExecutableShortcutsDialog(
+                parentAppId = libraryItem.appId,
+                containerData = loadContainerData(context, libraryItem),
+                onDismiss = { showExecutableShortcuts = false },
+            )
+        }
 
         // Always available: Edit Container
         menuOptions.add(getEditContainerOption(context, libraryItem, onEditContainer))
@@ -1222,6 +1230,9 @@ abstract class BaseAppScreen {
             getShareDiagnosticsOption(context, libraryItem)?.let { menuOptions.add(it) }
             getResetContainerOption(context, libraryItem)?.let { menuOptions.add(it) }
             getCreateShortcutOption(context, libraryItem)?.let { menuOptions.add(it) }
+            if (getGameSource(libraryItem) == GameSource.STEAM && ContainerUtils.hasContainer(context, libraryItem.appId)) {
+                menuOptions.add(AppMenuOption(AppOptionMenuType.CreateExecutableShortcut) { showExecutableShortcuts = true })
+            }
             getExportContainerOption(context, libraryItem, exportFrontendLauncher)?.let { menuOptions.add(it) }
             getCopyLaunchLinkOption(context, libraryItem)?.let { menuOptions.add(it) }
         }
